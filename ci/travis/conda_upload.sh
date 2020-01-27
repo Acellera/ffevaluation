@@ -7,7 +7,7 @@
 
 export ANACONDA_TOKEN=$ANACONDA_TOKEN_BASIC
 export CHANNEL=acellera
-export PACKAGE_NAME=parameterize
+export PACKAGE_NAME=ffevaluation
 
 conda install anaconda-client -y -q
 
