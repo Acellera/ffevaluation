@@ -237,113 +237,127 @@ def fixParameters(parameterfile, outfile=None):
     return tmpfile
 
 
+import unittest
+
+
+class _TestFFEvaluate(unittest.TestCase):
+    def test_ffevaluate(self):
+        from natsort import natsorted
+        from ffevaluation.home import home
+        from moleculekit.molecule import Molecule
+        from glob import glob
+        import parmed
+        import os
+        import logging
+
+        logging.getLogger("parmed.structure").setLevel("ERROR")
+
+        for d in glob(os.path.join(home(dataDir="*"), "")):
+            with self.subTest(system=d):
+                print("\nRunning test:", d)
+                if os.path.basename(os.path.abspath(d)) == "thrombin-ligand-amber":
+                    abstol = 1e-1
+                elif os.path.basename(os.path.abspath(d)) == "waterbox":
+                    abstol = 1e-3
+                else:
+                    abstol = 1e-4
+
+                prmtopFile = glob(os.path.join(d, "*.prmtop"))
+                psfFile = glob(os.path.join(d, "*.psf"))
+                pdbFile = glob(os.path.join(d, "*.pdb"))
+                xtcFile = glob(os.path.join(d, "*.xtc"))
+                if len(glob(os.path.join(d, "*.prm"))):
+                    prmFiles = [
+                        fixParameters(glob(os.path.join(d, "*.prm"))[0]),
+                    ]
+                rtfFile = glob(os.path.join(d, "*.rtf"))
+                if len(rtfFile):
+                    prmFiles.append(rtfFile[0])
+                else:
+                    rtfFile = None
+
+                if len(psfFile):
+                    mol = Molecule(psfFile[0])
+                elif len(prmtopFile):
+                    mol = Molecule(prmtopFile[0])
+                if len(xtcFile):
+                    mol.read(natsorted(xtcFile))
+                elif len(pdbFile):
+                    mol.read(pdbFile[0])
+                else:
+                    raise RuntimeError("No PDB or XTC")
+                coords = mol.coords
+                coords = coords[:, :, 0].squeeze()
+                rfa = False
+                cutoff = 0
+                if not np.all(mol.box == 0):
+                    cutoff = np.min(mol.box) / 2 - 0.01
+                    rfa = True
+
+                chargebackup = mol.charge.copy()
+                for force in (
+                    "angle",
+                    "bond",
+                    "dihedral",
+                    "lennardjones",
+                    "electrostatic",
+                ):
+                    mol.charge = chargebackup.copy()
+                    if len(psfFile):
+                        struct = parmed.charmm.CharmmPsfFile(psfFile[0])
+                        prm = parmed.charmm.CharmmParameterSet(*prmFiles)
+                        keepForces(prm, struct, mol, forces=force)
+                    elif len(prmtopFile):
+                        struct = parmed.load_file(prmtopFile[0])
+                        prm = parmed.amber.AmberParameterSet().from_structure(struct)
+                        keepForces(prm, struct, mol, forces=force)
+                        keepForcesAmber(struct, mol, forces=force)
+
+                    energies, forces, atmnrg = FFEvaluate(
+                        mol, prm, cutoff=cutoff, rfa=rfa
+                    ).calculate(mol.coords, mol.box)
+                    energies = FFEvaluate.formatEnergies(energies[:, 0])
+                    forces = forces[:, :, 0].squeeze()
+                    omm_energies, omm_forces = openmm_energy(
+                        prm, struct, coords, box=mol.box, cutoff=cutoff
+                    )
+                    ediff = compareEnergies(energies, omm_energies, abstol=abstol)
+                    print(
+                        "  ",
+                        force,
+                        "Energy diff:",
+                        ediff,
+                        "Force diff:",
+                        compareForces(forces, omm_forces),
+                    )
+
+                if len(psfFile):
+                    struct = parmed.charmm.CharmmPsfFile(psfFile[0])
+                    prm = parmed.charmm.CharmmParameterSet(*prmFiles)
+                    keepForces(prm, struct, mol)
+                elif len(prmtopFile):
+                    struct = parmed.load_file(prmtopFile[0])
+                    prm = parmed.amber.AmberParameterSet().from_structure(struct)
+                    keepForces(prm, struct, mol)
+                    keepForcesAmber(struct, mol)
+                energies, forces, atmnrg = FFEvaluate(
+                    mol, prm, cutoff=cutoff, rfa=rfa
+                ).calculate(mol.coords, mol.box)
+                energies = FFEvaluate.formatEnergies(energies[:, 0])
+                forces = forces[:, :, 0].squeeze()
+                omm_energies, omm_forces = openmm_energy(
+                    prm, struct, coords, box=mol.box, cutoff=cutoff
+                )
+                ediff = compareEnergies(energies, omm_energies, abstol=abstol)
+                print(
+                    "All forces. Total energy:",
+                    energies["total"],
+                    "Energy diff:",
+                    ediff,
+                    "Force diff:",
+                    compareForces(forces, omm_forces),
+                )
+
+
 if __name__ == "__main__":
-    from natsort import natsorted
-    from ffevaluation.home import home
-    from moleculekit.molecule import Molecule
-    from glob import glob
-    import parmed
-    import os
-    import logging
-
-    logging.getLogger("parmed.structure").setLevel("ERROR")
-
-    for d in glob(os.path.join(home(dataDir="*"), "")):
-        print("\nRunning test:", d)
-        if os.path.basename(os.path.abspath(d)) == "thrombin-ligand-amber":
-            abstol = 1e-1
-        elif os.path.basename(os.path.abspath(d)) == "waterbox":
-            abstol = 1e-3
-        else:
-            abstol = 1e-4
-
-        prmtopFile = glob(os.path.join(d, "*.prmtop"))
-        psfFile = glob(os.path.join(d, "*.psf"))
-        pdbFile = glob(os.path.join(d, "*.pdb"))
-        xtcFile = glob(os.path.join(d, "*.xtc"))
-        if len(glob(os.path.join(d, "*.prm"))):
-            prmFiles = [
-                fixParameters(glob(os.path.join(d, "*.prm"))[0]),
-            ]
-        rtfFile = glob(os.path.join(d, "*.rtf"))
-        if len(rtfFile):
-            prmFiles.append(rtfFile[0])
-        else:
-            rtfFile = None
-
-        if len(psfFile):
-            mol = Molecule(psfFile[0])
-        elif len(prmtopFile):
-            mol = Molecule(prmtopFile[0])
-        if len(xtcFile):
-            mol.read(natsorted(xtcFile))
-        elif len(pdbFile):
-            mol.read(pdbFile[0])
-        else:
-            raise RuntimeError("No PDB or XTC")
-        coords = mol.coords
-        coords = coords[:, :, 0].squeeze()
-        rfa = False
-        cutoff = 0
-        if not np.all(mol.box == 0):
-            cutoff = np.min(mol.box) / 2 - 0.01
-            rfa = True
-
-        chargebackup = mol.charge.copy()
-        for force in ("angle", "bond", "dihedral", "lennardjones", "electrostatic"):
-            mol.charge = chargebackup.copy()
-            if len(psfFile):
-                struct = parmed.charmm.CharmmPsfFile(psfFile[0])
-                prm = parmed.charmm.CharmmParameterSet(*prmFiles)
-                keepForces(prm, struct, mol, forces=force)
-            elif len(prmtopFile):
-                struct = parmed.load_file(prmtopFile[0])
-                prm = parmed.amber.AmberParameterSet().from_structure(struct)
-                keepForces(prm, struct, mol, forces=force)
-                keepForcesAmber(struct, mol, forces=force)
-
-            energies, forces, atmnrg = FFEvaluate(
-                mol, prm, cutoff=cutoff, rfa=rfa
-            ).calculate(mol.coords, mol.box)
-            energies = FFEvaluate.formatEnergies(energies[:, 0])
-            forces = forces[:, :, 0].squeeze()
-            omm_energies, omm_forces = openmm_energy(
-                prm, struct, coords, box=mol.box, cutoff=cutoff
-            )
-            ediff = compareEnergies(energies, omm_energies, abstol=abstol)
-            print(
-                "  ",
-                force,
-                "Energy diff:",
-                ediff,
-                "Force diff:",
-                compareForces(forces, omm_forces),
-            )
-
-        if len(psfFile):
-            struct = parmed.charmm.CharmmPsfFile(psfFile[0])
-            prm = parmed.charmm.CharmmParameterSet(*prmFiles)
-            keepForces(prm, struct, mol)
-        elif len(prmtopFile):
-            struct = parmed.load_file(prmtopFile[0])
-            prm = parmed.amber.AmberParameterSet().from_structure(struct)
-            keepForces(prm, struct, mol)
-            keepForcesAmber(struct, mol)
-        energies, forces, atmnrg = FFEvaluate(
-            mol, prm, cutoff=cutoff, rfa=rfa
-        ).calculate(mol.coords, mol.box)
-        energies = FFEvaluate.formatEnergies(energies[:, 0])
-        forces = forces[:, :, 0].squeeze()
-        omm_energies, omm_forces = openmm_energy(
-            prm, struct, coords, box=mol.box, cutoff=cutoff
-        )
-        ediff = compareEnergies(energies, omm_energies, abstol=abstol)
-        print(
-            "All forces. Total energy:",
-            energies["total"],
-            "Energy diff:",
-            ediff,
-            "Force diff:",
-            compareForces(forces, omm_forces),
-        )
-
+    unittest.main(verbosity=2)
