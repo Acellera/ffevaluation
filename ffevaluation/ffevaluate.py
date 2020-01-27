@@ -45,7 +45,7 @@ def loadParameters(fname):
 
     Examples
     --------
-    >>> from ffevaluate.home import home
+    >>> from ffevaluation.home import home
     >>> from os.path import join
     >>> prm = loadParameters(join(home(dataDir='thrombin-ligand-amber'), 'structure.prmtop'))
     """
@@ -118,7 +118,7 @@ class FFEvaluate:
 
         Examples
         --------
-        >>> from ffevaluate.test_ffevaluate import fixParameters, drawForce
+        >>> from ffevaluation.test_ffevaluate import fixParameters, drawForce
         >>> from moleculekit.molecule import Molecule
         >>> import parmed
         >>> mol = Molecule('./ffevaluation/test-data/waterbox/structure.psf')
