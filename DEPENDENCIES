@@ -1,7 +1,8 @@
 parmed
 moleculekit
-numpy
+numpy>=1.17
 numba
 scipy
 networkx
 openmm
+natsort
