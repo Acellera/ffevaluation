@@ -1,0 +1,7 @@
+parmed
+moleculekit
+numpy
+numba
+scipy
+networkx
+openmm
