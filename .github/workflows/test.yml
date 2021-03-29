@@ -1,0 +1,53 @@
+name: Test code
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.6", "3.7", "3.8"]
+
+    defaults: # Needed for conda
+      run:
+        shell: bash -l {0}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        lfs: true
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: ffevaluate
+        channels: acellera,conda-forge,defaults
+        channel-priority: true
+        environment-file: conda-environment.yml
+        python-version: ${{ matrix.python-version }}
+        # auto-update-conda: true
+        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+        auto-activate-base: false
+
+    - run: |
+          conda info
+          conda list
+
+    # - name: Install pip dependencies
+    #   run: |
+    #     pip install flake8 pytest
+    #     pip install . --extra-index-url=${{ secrets.PYPI_EXTRA_INDEX }}
+
+    # - name: Lint with flake8
+    #   run: |
+    #     # stop the build if there are Python syntax errors or undefined names
+    #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+    #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    # # - name: Test with pytest
+    # #   run: |
+    # #     pytest
