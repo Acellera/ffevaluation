@@ -46,12 +46,12 @@ jobs:
     - name: Insert placeholder values
       run: |
         python ci/insert_placeholder_values.py
+        echo "BUILD_VERSION=${GITHUB_REF/refs\/tags\/}" >> $GITHUB_ENV
+        echo "BUILD_NUMBER=0" >> $GITHUB_ENV
 
     - name: Build and install conda package
       run: |
-        conda install conda-build=3
-        echo "BUILD_VERSION=${GITHUB_REF/refs\/tags\/}" >> $GITHUB_ENV
-        echo "BUILD_NUMBER=0" >> $GITHUB_ENV
+        conda install conda-build=3 anaconda-client
         conda build --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
         conda install /usr/share/miniconda/envs/ffevaluate/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
 
