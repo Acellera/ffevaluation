@@ -63,5 +63,6 @@ jobs:
         codecov
 
     - name: Upload to anaconda
+      if: startsWith(github.ref, 'refs/tags')
       run: |
         anaconda -t ${{ secrets.ANACONDA_TOKEN }} upload /usr/share/miniconda/envs/ffevaluate/conda-bld/linux-64/ffevaluation-[0-9]*.tar.bz2 -u acellera
