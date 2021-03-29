@@ -46,7 +46,11 @@ jobs:
     - name: Insert placeholder values
       run: |
         python ci/insert_placeholder_values.py
-        echo "BUILD_VERSION=${GITHUB_REF/refs\/tags\/}" >> $GITHUB_ENV
+
+    - name: Define env vars
+      if: startsWith(github.ref, 'refs/tags')
+      run: |
+        echo "BUILD_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
         echo "BUILD_NUMBER=0" >> $GITHUB_ENV
 
     - name: Build and install conda package
