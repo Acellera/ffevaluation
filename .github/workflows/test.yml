@@ -49,14 +49,11 @@ jobs:
 
     - name: Build and install conda package
       run: |
-        sudo apt-get install which -y 
-        which conda
         conda build --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
-        conda install $HOME/miniconda/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c psi4 -c conda-forge
+        conda install /usr/share/miniconda/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
 
     - name: Run tests and coverage
       run: |
         pip install -q codecov coverage
-        export PYTHONPATH=$TRAVIS_BUILD_DIR:$PYTHONPATH
         coverage run -m unittest discover --start-directory ./ffevaluation --pattern "*.py"
         codecov
