@@ -50,6 +50,9 @@ jobs:
     - name: Build and install conda package
       run: |
         conda install conda-build=3
+        export TAG_DESCRIBE=$(git describe)
+        export BUILD_VERSION=$(echo $TAG_DESCRIBE | sed 's/-/ /g'  | awk '{print $1}')
+        export BUILD_NUMBER=0
         conda build --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
         conda install /usr/share/miniconda/envs/ffevaluate/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
 
@@ -58,3 +61,7 @@ jobs:
         pip install -q codecov coverage
         coverage run -m unittest discover --start-directory ./ffevaluation --pattern "*.py"
         codecov
+
+    - name: Upload to anaconda
+      run: |
+        anaconda -t ${{ secrets.ANACONDA_TOKEN }} upload /usr/share/miniconda/envs/ffevaluate/conda-bld/linux-64/ffevaluation-[0-9]*.tar.bz2 -u acellera
