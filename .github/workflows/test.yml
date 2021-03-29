@@ -51,7 +51,7 @@ jobs:
       run: |
         conda install conda-build=3
         conda build --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
-        conda install /usr/share/miniconda/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
+        conda install /usr/share/miniconda/envs/ffevaluate/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
 
     - name: Run tests and coverage
       run: |
