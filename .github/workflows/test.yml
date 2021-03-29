@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.6", "3.7", "3.8"]
+        python-version: ["3.6", "3.7"] #, "3.8"]
 
     defaults: # Needed for conda
       run:
@@ -32,22 +32,31 @@ jobs:
         use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
         auto-activate-base: false
 
-    - run: |
-          conda info
-          conda list
+    - name: Install pip dependencies
+      run: |
+        pip install flake8 pytest
 
-    # - name: Install pip dependencies
-    #   run: |
-    #     pip install flake8 pytest
-    #     pip install . --extra-index-url=${{ secrets.PYPI_EXTRA_INDEX }}
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    # - name: Lint with flake8
-    #   run: |
-    #     # stop the build if there are Python syntax errors or undefined names
-    #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-    #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Insert placeholder values
+      run: |
+        python ci/insert_placeholder_values.py
 
-    # # - name: Test with pytest
-    # #   run: |
-    # #     pytest
+    - name: Build and install conda package
+      run: |
+        sudo apt-get install which -y 
+        which conda
+        conda build --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
+        conda install $HOME/miniconda/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c psi4 -c conda-forge
+
+    - name: Run tests and coverage
+      run: |
+        pip install -q codecov coverage
+        export PYTHONPATH=$TRAVIS_BUILD_DIR:$PYTHONPATH
+        coverage run -m unittest discover --start-directory ./ffevaluation --pattern "*.py"
+        codecov
