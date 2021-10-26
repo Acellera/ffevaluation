@@ -1,5 +1,5 @@
 parmed
-moleculekit<=0.9.1
+moleculekit
 numpy>=1.17
 numba
 scipy
