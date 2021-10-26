@@ -6,32 +6,21 @@
 import logging
 from math import sqrt, acos, radians, cos, sin, pi
 import numpy as np
-from moleculekit.dihedral import dihedralAngleFull, wrapBondedDistance, wrapDistance
 from numba import jit
 from scipy import constants as const
+from ffevaluation.numbautil import (
+    dihedralAngleFull,
+    wrapBondedDistance,
+    wrapDistance,
+    cross,
+    dot,
+)
 
 logger = logging.getLogger(__name__)
 
 
-@jit(nopython=True)
-def cross(vec1, vec2):
-    """ Calculate the dot product of two 3d vectors. """
-    a1, a2, a3 = vec1[0], vec1[1], vec1[2]
-    b1, b2, b3 = vec2[0], vec2[1], vec2[2]
-    result = np.zeros(3)
-    result[0] = a2 * b3 - a3 * b2
-    result[1] = a3 * b1 - a1 * b3
-    result[2] = a1 * b2 - a2 * b1
-    return result
-
-
-@jit(nopython=True)
-def dot(vec1, vec2):
-    return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2]
-
-
 def loadParameters(fname):
-    """ Convenience method for reading parameter files with parmed
+    """Convenience method for reading parameter files with parmed
 
     Parameters
     ----------
@@ -52,33 +41,40 @@ def loadParameters(fname):
     import parmed
 
     prm = None
-    if fname.endswith('.prm'):
+    if fname.endswith(".prm"):
         try:
             prm = parmed.charmm.CharmmParameterSet(fname)
         except Exception as e:
-            print('Failed to read {} as CHARMM parameters. Attempting with AMBER prmtop reader'.format(fname))
+            print(
+                "Failed to read {} as CHARMM parameters. Attempting with AMBER prmtop reader".format(
+                    fname
+                )
+            )
             try:
                 struct = parmed.amber.AmberParm(fname)
                 prm = parmed.amber.AmberParameterSet.from_structure(struct)
             except Exception as e2:
-                print('Failed to read {} due to errors {} {}'.format(fname, e, e2))
-    elif fname.endswith('.prmtop'):
+                print("Failed to read {} due to errors {} {}".format(fname, e, e2))
+    elif fname.endswith(".prmtop"):
         struct = parmed.amber.AmberParm(fname)
         prm = parmed.amber.AmberParameterSet.from_structure(struct)
-    elif fname.endswith('.frcmod'):
+    elif fname.endswith(".frcmod"):
         prm = parmed.amber.AmberParameterSet(fname)
 
     if prm is None:
-        raise RuntimeError('Extension of file {} not recognized. Report issue on HTMD issue tracker.'.format(fname))
+        raise RuntimeError(
+            "Extension of file {} not recognized. Report issue on HTMD issue tracker.".format(
+                fname
+            )
+        )
 
     return prm
-
 
 
 class FFEvaluate:
     @staticmethod
     def formatEnergies(energies):
-        """ Formats the energies into a dictionary.
+        """Formats the energies into a dictionary.
 
         Parameters
         ----------
@@ -91,11 +87,20 @@ class FFEvaluate:
             A dictionary containing the energies
         """
         energies = energies.squeeze()
-        return {'angle': energies[3], 'bond': energies[0], 'dihedral': energies[4], 'elec': energies[2],
-                'improper': energies[5], 'vdw': energies[1], 'total': energies.sum(axis=0)}
+        return {
+            "angle": energies[3],
+            "bond": energies[0],
+            "dihedral": energies[4],
+            "elec": energies[2],
+            "improper": energies[5],
+            "vdw": energies[1],
+            "total": energies.sum(axis=0),
+        }
 
-    def __init__(self, mol, prm, betweensets=None, cutoff=0, rfa=False, solventDielectric=78.5):
-        """  Evaluates energies and forces of the forcefield for a given Molecule
+    def __init__(
+        self, mol, prm, betweensets=None, cutoff=0, rfa=False, solventDielectric=78.5
+    ):
+        """Evaluates energies and forces of the forcefield for a given Molecule
 
         Parameters
         ----------
@@ -149,7 +154,7 @@ class FFEvaluate:
         self._args = args
 
     def calculateEnergies(self, coords, box=None, formatted=True):
-        """ Utility method which calls `calculate` to calculate energies and returns them.
+        """Utility method which calls `calculate` to calculate energies and returns them.
 
         Parameters
         ----------
@@ -172,7 +177,7 @@ class FFEvaluate:
         return energies
 
     def calculate(self, coords, box=None):
-        """ Calculates energies, forces and individual atom energies for given coordinates and periodic box.
+        """Calculates energies, forces and individual atom energies for given coordinates and periodic box.
 
         Parameters
         ----------
@@ -199,9 +204,15 @@ class FFEvaluate:
             box = np.zeros((3, coords.shape[2]), dtype=np.float32)
 
         if box.shape[0] != 3 or box.shape[1] != coords.shape[2]:
-            raise ValueError('Box dimensions have to be (3, numFrames), your Molecule has box of shape {}'.format(box.shape))
+            raise ValueError(
+                "Box dimensions have to be (3, numFrames), your Molecule has box of shape {}".format(
+                    box.shape
+                )
+            )
 
-        energies, forces, atmnrg = _ffevaluate(coords.astype(np.float32), box.astype(np.float32), *self._args)
+        energies, forces, atmnrg = _ffevaluate(
+            coords.astype(np.float32), box.astype(np.float32), *self._args
+        )
         return energies, forces, atmnrg
 
 
@@ -225,10 +236,10 @@ def nestedListToArray(nl, dtype, default=1):
     arr = np.ones(dim, dtype=dtype) * default
     for i in range(dim[0]):
         if len(dim) == 2:
-            arr[i, :len(nl[i])] = nl[i]
+            arr[i, : len(nl[i])] = nl[i]
         elif len(dim) == 3:
             for j in range(len(nl[i])):
-                arr[i, j, :len(nl[i][j])] = nl[i][j]
+                arr[i, j, : len(nl[i][j])] = nl[i][j]
     return arr
 
 
@@ -236,6 +247,7 @@ def detectImproperCenter(indexes, graph):
     for i in indexes:
         if len(np.intersect1d(list(graph.neighbors(i)), indexes)) == 3:
             return i
+
 
 def improperGraph(impropers, bonds):
     import networkx as nx
@@ -248,14 +260,18 @@ def improperGraph(impropers, bonds):
 
 def getImproperParameter(type, parameters):
     from itertools import permutations
+
     type = np.array(type)
     perms = np.array([x for x in list(permutations((0, 1, 2, 3))) if x[2] == 2])
     for p in perms:
         if tuple(type[p]) in parameters.improper_types:
-            return parameters.improper_types[tuple(type[p])], 'improper_types'
+            return parameters.improper_types[tuple(type[p])], "improper_types"
         elif tuple(type[p]) in parameters.improper_periodic_types:
-            return parameters.improper_periodic_types[tuple(type[p])], 'improper_periodic_types'
-    raise RuntimeError('Could not find improper parameters for key {}'.format(type))
+            return (
+                parameters.improper_periodic_types[tuple(type[p])],
+                "improper_periodic_types",
+            )
+    raise RuntimeError("Could not find improper parameters for key {}".format(type))
 
 
 # TODO: Can be improved with lil sparse arrays
@@ -275,7 +291,9 @@ def init(mol, prm):
     if prm.urey_bradley_types:
         for type in prm.urey_bradley_types:
             if prm.urey_bradley_types[type].k != 0:
-                logger.warning('Urey-Bradley types found in the parameters but are not implemented in FFEvaluate and will be ignored!')
+                logger.warning(
+                    "Urey-Bradley types found in the parameters but are not implemented in FFEvaluate and will be ignored!"
+                )
                 break
 
     uqtypes, typeint = np.unique(mol.atomtype, return_inverse=True)
@@ -295,8 +313,8 @@ def init(mol, prm):
             idx1 = np.where(uqtypes == nbf[0])[0]
             idx2 = np.where(uqtypes == nbf[1])[0]
             rmin, eps, rmin14, eps14 = prm.atom_types[nbf[0]].nbfix[nbf[1]]
-            sig = rmin * 2**(-1/6)  # Convert rmin to sigma
-            sig14 = rmin14 * 2**(-1/6)
+            sig = rmin * 2 ** (-1 / 6)  # Convert rmin to sigma
+            sig14 = rmin14 * 2 ** (-1 / 6)
             nbfix[i, :] = [idx1, idx2, eps, sig, eps14, sig14]
 
     # 1-2 and 1-3 exclusion matrix
@@ -316,7 +334,10 @@ def init(mol, prm):
         first, second = sorted([angle[0], angle[2]])
         excl_list[first].append(second)
         types = tuple(uqtypes[typeint[angle]])
-        angle_params[idx, :] = [prm.angle_types[types].k, radians(prm.angle_types[types].theteq)]
+        angle_params[idx, :] = [
+            prm.angle_types[types].k,
+            radians(prm.angle_types[types].theteq),
+        ]
     excl_list = [list(np.unique(x)) for x in excl_list]
 
     # 1-4 van der Waals scaling matrix
@@ -329,7 +350,7 @@ def init(mol, prm):
     alreadyadded = {}
     for idx, dihed in enumerate(mol.dihedrals):
         # Avoid readding duplicate dihedrals
-        stringrep = ' '.join(map(str, sorted(dihed)))
+        stringrep = " ".join(map(str, sorted(dihed)))
         if stringrep in alreadyadded:
             continue
         alreadyadded[stringrep] = True
@@ -339,7 +360,7 @@ def init(mol, prm):
         elif ty[::-1] in prm.dihedral_types:
             dihparam = prm.dihedral_types[ty[::-1]]
         else:
-            raise RuntimeError('Could not find type {} in dihedral_types'.format(ty))
+            raise RuntimeError("Could not find type {} in dihedral_types".format(ty))
         i, j = sorted([dihed[0], dihed[3]])
         s14_atom_list[i].append(j)
         s14_value_list[i].append(dihparam[0].scnb)
@@ -356,19 +377,31 @@ def init(mol, prm):
         ty = tuple(uqtypes[typeint[impr]])
         try:
             imprparam, impr_type = getImproperParameter(ty, prm)
-        except:
+        except Exception:
             try:  # In some cases AMBER does not store the center as 3rd atom (i.e. if it's index is 0). Then you need to detect it
                 center = detectImproperCenter(impr, graph)
                 notcenter = np.setdiff1d(impr, center)
                 notcenter = sorted(uqtypes[typeint[notcenter]])
-                ty = tuple(notcenter[:2] + [uqtypes[typeint[center]],] + notcenter[2:])
+                ty = tuple(
+                    notcenter[:2]
+                    + [
+                        uqtypes[typeint[center]],
+                    ]
+                    + notcenter[2:]
+                )
                 imprparam, impr_type = getImproperParameter(ty, prm)
-            except:
-                raise RuntimeError('Could not find improper parameters for atom types {}'.format(ty))
+            except Exception:
+                raise RuntimeError(
+                    "Could not find improper parameters for atom types {}".format(ty)
+                )
 
-        if impr_type == 'improper_periodic_types':
-            improper_params[idx, :] = [imprparam.phi_k, radians(imprparam.phase), imprparam.per]
-        elif impr_type == 'improper_types':
+        if impr_type == "improper_periodic_types":
+            improper_params[idx, :] = [
+                imprparam.phi_k,
+                radians(imprparam.phase),
+                imprparam.per,
+            ]
+        elif impr_type == "improper_types":
             improper_params[idx, :] = [imprparam.psi_k, radians(imprparam.psi_eq), 0]
 
     excl = nestedListToArray(excl_list, dtype=np.int64, default=-1)
@@ -378,15 +411,42 @@ def init(mol, prm):
     e14v = nestedListToArray(e14_value_list, dtype=np.float32, default=np.nan)
     bonda = nestedListToArray(bond_pairs, dtype=np.int64, default=-1)
     bondv = nestedListToArray(bond_params, dtype=np.float32, default=np.nan)
-    dihedral_params = nestedListToArray(dihedral_params, dtype=np.float32, default=np.nan)
+    dihedral_params = nestedListToArray(
+        dihedral_params, dtype=np.float32, default=np.nan
+    )
 
     ELEC_FACTOR = 1 / (4 * const.pi * const.epsilon_0)  # Coulomb's constant
-    ELEC_FACTOR *= const.elementary_charge ** 2  # Convert elementary charges to Coulombs
+    ELEC_FACTOR *= (
+        const.elementary_charge ** 2
+    )  # Convert elementary charges to Coulombs
     ELEC_FACTOR /= const.angstrom  # Convert Angstroms to meters
-    ELEC_FACTOR *= const.Avogadro / (const.kilo * const.calorie)  # Convert J to kcal/mol
+    ELEC_FACTOR *= const.Avogadro / (
+        const.kilo * const.calorie
+    )  # Convert J to kcal/mol
 
-    return typeint, excl, nbfix, sigma, sigma14, epsilon, epsilon14, s14a, e14a, s14v, e14v, bonda, bondv, ELEC_FACTOR, \
-           charge, angles, angle_params, dihedrals, dihedral_params, impropers, improper_params
+    return (
+        typeint,
+        excl,
+        nbfix,
+        sigma,
+        sigma14,
+        epsilon,
+        epsilon14,
+        s14a,
+        e14a,
+        s14v,
+        e14v,
+        bonda,
+        bondv,
+        ELEC_FACTOR,
+        charge,
+        angles,
+        angle_params,
+        dihedrals,
+        dihedral_params,
+        impropers,
+        improper_params,
+    )
 
 
 def calculateSets(mol, betweensets):
@@ -402,7 +462,7 @@ def calculateSets(mol, betweensets):
     return setA, setB
 
 
-@jit('boolean(int64[:, :], int64, int64)', nopython=True)
+@jit("boolean(int64[:, :], int64, int64)", nopython=True)
 def _ispaired(excl, i, j):
     nexcl = excl.shape[1]
     for e in range(nexcl):
@@ -452,9 +512,36 @@ def _insets(i, j, set1, set2):
 
 
 @jit(nopython=True)
-def _ffevaluate(coords, box, typeint, excl, nbfix, sigma, sigma14, epsilon, epsilon14, s14a, e14a, s14v, e14v, bonda,
-                bondv, ELEC_FACTOR, charge, angles, angle_params, dihedrals, dihedral_params, impropers,
-                improper_params, set1, set2, cutoff, rfa, solventDielectric):
+def _ffevaluate(
+    coords,
+    box,
+    typeint,
+    excl,
+    nbfix,
+    sigma,
+    sigma14,
+    epsilon,
+    epsilon14,
+    s14a,
+    e14a,
+    s14v,
+    e14v,
+    bonda,
+    bondv,
+    ELEC_FACTOR,
+    charge,
+    angles,
+    angle_params,
+    dihedrals,
+    dihedral_params,
+    impropers,
+    improper_params,
+    set1,
+    set2,
+    cutoff,
+    rfa,
+    solventDielectric,
+):
     natoms = coords.shape[0]
     nframes = coords.shape[2]
     nangles = angles.shape[0]
@@ -482,7 +569,9 @@ def _ffevaluate(coords, box, typeint, excl, nbfix, sigma, sigma14, epsilon, epsi
 
                 dist = 0
                 for k in range(3):
-                    direction_vec[k] = wrapDistance(coords[i, k, f] - coords[j, k, f], box[k, f])
+                    direction_vec[k] = wrapDistance(
+                        coords[i, k, f] - coords[j, k, f], box[k, f]
+                    )
                     dist += direction_vec[k] * direction_vec[k]
                 dist = sqrt(dist)
                 direction_unitvec = direction_vec / dist
@@ -494,14 +583,39 @@ def _ffevaluate(coords, box, typeint, excl, nbfix, sigma, sigma14, epsilon, epsi
                     continue
 
                 if isbonded:
-                    pot_bo, force_bo = _evaluate_harmonic_bonds(i, j, bonda, bondv, dist)
+                    pot_bo, force_bo = _evaluate_harmonic_bonds(
+                        i, j, bonda, bondv, dist
+                    )
                     energies[0, f] += pot_bo
                     coeff += force_bo
                 if not isexcluded:
-                    pot_lj, force_lj = _evaluate_lj(i, j, typeint, nbfix, sigma, sigma14, epsilon, epsilon14, s14a, s14v, dist)
+                    pot_lj, force_lj = _evaluate_lj(
+                        i,
+                        j,
+                        typeint,
+                        nbfix,
+                        sigma,
+                        sigma14,
+                        epsilon,
+                        epsilon14,
+                        s14a,
+                        s14v,
+                        dist,
+                    )
                     energies[1, f] += pot_lj
                     coeff += force_lj
-                    pot_el, force_el = _evaluate_elec(i, j, charge, e14a, e14v, ELEC_FACTOR, dist, rfa, solventDielectric, cutoff)
+                    pot_el, force_el = _evaluate_elec(
+                        i,
+                        j,
+                        charge,
+                        e14a,
+                        e14v,
+                        ELEC_FACTOR,
+                        dist,
+                        rfa,
+                        solventDielectric,
+                        cutoff,
+                    )
                     energies[2, f] += pot_el
                     coeff += force_el
 
@@ -520,7 +634,9 @@ def _ffevaluate(coords, box, typeint, excl, nbfix, sigma, sigma14, epsilon, epsi
 
         # Evaluate angle forces
         for i in range(nangles):
-            pot_an, force_an = _evaluate_angles(coords[angles[i, :], :, f], angle_params[i, :], box[:, f])
+            pot_an, force_an = _evaluate_angles(
+                coords[angles[i, :], :, f], angle_params[i, :], box[:, f]
+            )
             energies[3, f] += pot_an
             for a in range(3):
                 for k in range(3):
@@ -529,7 +645,9 @@ def _ffevaluate(coords, box, typeint, excl, nbfix, sigma, sigma14, epsilon, epsi
 
         # Evaluate dihedral forces
         for i in range(ndihedrals):
-            pot_di, force_di = _evaluate_torsion(coords[dihedrals[i, :], :, f], dihedral_params[i, :], box[:, f])
+            pot_di, force_di = _evaluate_torsion(
+                coords[dihedrals[i, :], :, f], dihedral_params[i, :], box[:, f]
+            )
             energies[4, f] += pot_di
             for d in range(4):
                 for k in range(3):
@@ -538,7 +656,9 @@ def _ffevaluate(coords, box, typeint, excl, nbfix, sigma, sigma14, epsilon, epsi
 
         # Evaluate impropers
         for i in range(nimpropers):
-            pot_im, force_im = _evaluate_torsion(coords[impropers[i, :], :, f], improper_params[i, :], box[:, f])
+            pot_im, force_im = _evaluate_torsion(
+                coords[impropers[i, :], :, f], improper_params[i, :], box[:, f]
+            )
             energies[5, f] += pot_im
             for d in range(4):
                 for k in range(3):
@@ -548,14 +668,21 @@ def _ffevaluate(coords, box, typeint, excl, nbfix, sigma, sigma14, epsilon, epsi
     return energies, forces, atmnrg
 
 
-@jit('UniTuple(float64, 5)(int64, int64, int64, int64, float64[:,:], float32[:], float32[:], float32[:], float32[:], int64[:,:], float32[:,:])', nopython=True)
-def _getSigmaEpsilon(i, j, it, jt, nbfix, sigma, sigma14, epsilon, epsilon14, s14a, s14v):
+@jit(
+    "UniTuple(float64, 5)(int64, int64, int64, int64, float64[:,:], float32[:], float32[:], float32[:], float32[:], int64[:,:], float32[:,:])",
+    nopython=True,
+)
+def _getSigmaEpsilon(
+    i, j, it, jt, nbfix, sigma, sigma14, epsilon, epsilon14, s14a, s14v
+):
     # i, j atom indexes  it, jt atom types
     n14 = s14a.shape[1]
     # Check if NBfix exists for the types and keep the index
     idx_nbfix = -1
     for k in range(nbfix.shape[0]):
-        if (nbfix[k, 0] == it and nbfix[k, 1] == jt) or (nbfix[k, 0] == jt and nbfix[k, 1] == it):
+        if (nbfix[k, 0] == it and nbfix[k, 1] == jt) or (
+            nbfix[k, 0] == jt and nbfix[k, 1] == it
+        ):
             idx_nbfix = k
             break
 
@@ -597,9 +724,26 @@ def _getSigmaEpsilon(i, j, it, jt, nbfix, sigma, sigma14, epsilon, epsilon14, s1
     return sig, eps, A, B, scale
 
 
-@jit('UniTuple(float64, 2)(int64, int64, int64[:], float64[:,:], float32[:], float32[:], float32[:], float32[:], int64[:,:], float32[:,:], float64)', nopython=True)
-def _evaluate_lj(i, j, typeint, nbfix, sigma, sigma14, epsilon, epsilon14, s14a, s14v, dist):
-    _, _, A, B, scale = _getSigmaEpsilon(i, j, typeint[i], typeint[j], nbfix, sigma, sigma14, epsilon, epsilon14, s14a, s14v)
+@jit(
+    "UniTuple(float64, 2)(int64, int64, int64[:], float64[:,:], float32[:], float32[:], float32[:], float32[:], int64[:,:], float32[:,:], float64)",
+    nopython=True,
+)
+def _evaluate_lj(
+    i, j, typeint, nbfix, sigma, sigma14, epsilon, epsilon14, s14a, s14v, dist
+):
+    _, _, A, B, scale = _getSigmaEpsilon(
+        i,
+        j,
+        typeint[i],
+        typeint[j],
+        nbfix,
+        sigma,
+        sigma14,
+        epsilon,
+        epsilon14,
+        s14a,
+        s14v,
+    )
 
     # cutoff = 2.5 * sig
     # if dist < cutoff:
@@ -612,7 +756,10 @@ def _evaluate_lj(i, j, typeint, nbfix, sigma, sigma14, epsilon, epsilon14, s14a,
     return pot, force
 
 
-@jit('UniTuple(float64, 2)(int64, int64, int64[:,:], float32[:,:], float64)', nopython=True)
+@jit(
+    "UniTuple(float64, 2)(int64, int64, int64[:,:], float32[:,:], float64)",
+    nopython=True,
+)
 def _evaluate_harmonic_bonds(i, j, bonda, bondv, dist):
     nbonds = bonda.shape[1]
     bonded = False
@@ -627,16 +774,21 @@ def _evaluate_harmonic_bonds(i, j, bonda, bondv, dist):
     if not bonded:
         return 0, 0
 
-    k0 = bondv[i, col*2+0]
-    d0 = bondv[i, col*2+1]
+    k0 = bondv[i, col * 2 + 0]
+    d0 = bondv[i, col * 2 + 1]
     x = dist - d0
     pot = k0 * (x ** 2)
     force = 2 * k0 * x
     return pot, force
 
 
-@jit('UniTuple(float64, 2)(int64, int64, float64[:], int64[:,:], float32[:,:], float64, float64, boolean, float64, float64)', nopython=True)
-def _evaluate_elec(i, j, charge, e14a, e14v, ELEC_FACTOR, dist, rfa, solventDielectric, cutoff):
+@jit(
+    "UniTuple(float64, 2)(int64, int64, float64[:], int64[:,:], float32[:,:], float64, float64, boolean, float64, float64)",
+    nopython=True,
+)
+def _evaluate_elec(
+    i, j, charge, e14a, e14v, ELEC_FACTOR, dist, rfa, solventDielectric, cutoff
+):
     nelec = e14a.shape[1]
     scale = 1
     for e in range(nelec):
@@ -650,7 +802,7 @@ def _evaluate_elec(i, j, charge, e14a, e14v, ELEC_FACTOR, dist, rfa, solventDiel
         # http://docs.openmm.org/latest/userguide/theory.html#coulomb-interaction-with-cutoff
         # Ilario G. Tironi, René Sperb, Paul E. Smith, and Wilfred F. van Gunsteren. A generalized reaction field method
         # for molecular dynamics simulations. Journal of Chemical Physics, 102(13):5451–5459, 1995.
-        denom = ((2 * solventDielectric) + 1)
+        denom = (2 * solventDielectric) + 1
         krf = (1 / cutoff ** 3) * (solventDielectric - 1) / denom
         crf = (1 / cutoff) * (3 * solventDielectric) / denom
         common = ELEC_FACTOR * charge[i] * charge[j] / scale
@@ -714,9 +866,13 @@ def _evaluate_angles(pos, angle_params, box):
         coef = -2.0 * k0 * delta_theta / sin_theta
 
     for i in range(3):
-        force[0, i] = coef * (cos_theta * r21[i] * norm21inv - r23[i] * norm23inv) * norm21inv
-        force[2, i] = coef * (cos_theta * r23[i] * norm23inv - r21[i] * norm21inv) * norm23inv
-        force[1, i] = - (force[0, i] + force[2, i])
+        force[0, i] = (
+            coef * (cos_theta * r21[i] * norm21inv - r23[i] * norm23inv) * norm21inv
+        )
+        force[2, i] = (
+            coef * (cos_theta * r23[i] * norm23inv - r21[i] * norm21inv) * norm23inv
+        )
+        force[1, i] = -(force[0, i] + force[2, i])
 
     # TODO: Return the actual force. Problem with numba UniTuple
     return pot, force
@@ -731,14 +887,13 @@ def _evaluate_torsion(pos, torsionparam, box):  # Dihedrals and impropers
             break
     pot = 0
     force = np.zeros((4, 3), dtype=np.float64)
-    phi, r12, r23, r34, A, B, C, rA, rB, rC, sin_phi, cos_phi = dihedralAngleFull(pos, box)
-    # phi = dihedralAngle(pos, box)
+    phi, r12, r23, r34 = dihedralAngleFull(pos, box)
     coef = 0
 
     for i in range(0, ntorsions):
-        k0 = torsionparam[i*3+0]
-        phi0 = torsionparam[i*3+1]
-        per = torsionparam[i*3+2]  # Periodicity
+        k0 = torsionparam[i * 3 + 0]
+        phi0 = torsionparam[i * 3 + 1]
+        per = torsionparam[i * 3 + 2]  # Periodicity
 
         if per > 0:  # Proper dihedrals or periodic improper dihedrals
             pot += k0 * (1 + cos(per * phi - phi0))
@@ -782,8 +937,10 @@ def _evaluate_torsion(pos, torsionparam, box):  # Dihedrals and impropers
 def _drawForce(start, vec):
     assert start.ndim == 1 and vec.ndim == 1
     from moleculekit.vmdviewer import getCurrentViewer
+
     vmd = getCurrentViewer()
-    vmd.send("""
+    vmd.send(
+        """
     proc vmd_draw_arrow {start end} {
         # an arrow is made of a cylinder and a cone
         draw color green
@@ -791,12 +948,17 @@ def _drawForce(start, vec):
         graphics top cylinder $start $middle radius 0.15
         graphics top cone $middle $end radius 0.25
     }
-    """)
-    vmd.send('vmd_draw_arrow {{ {} }} {{ {} }}'.format(' '.join(map(str, start)), ' '.join(map(str, start + vec))))
+    """
+    )
+    vmd.send(
+        "vmd_draw_arrow {{ {} }} {{ {} }}".format(
+            " ".join(map(str, start)), " ".join(map(str, start + vec))
+        )
+    )
 
 
 def viewForces(mol, forces, frame=0):
-    """ Visualize force vectors in VMD
+    """Visualize force vectors in VMD
 
     Parameters
     ----------

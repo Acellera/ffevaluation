@@ -3,12 +3,8 @@
 # Distributed under HTMD Software License Agreement
 # No redistribution in whole or part
 #
-from moleculekit.molecule import Molecule
 from ffevaluation.ffevaluate import FFEvaluate
-import parmed
-from glob import glob
 import numpy as np
-import os
 
 
 def disableDispersionCorrection(system):
