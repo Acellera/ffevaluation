@@ -56,7 +56,12 @@ def loadParameters(fname):
             except Exception as e2:
                 print("Failed to read {} due to errors {} {}".format(fname, e, e2))
     elif fname.endswith(".prmtop"):
+        from parmed import TrackedList
+
         struct = parmed.amber.AmberParm(fname)
+        # Clear CMAPs. They cause parsing issues sometimes and we don't use them here
+        struct.cmaps = TrackedList()
+        struct.cmap_types = TrackedList()
         prm = parmed.amber.AmberParameterSet.from_structure(struct)
     elif fname.endswith(".frcmod"):
         prm = parmed.amber.AmberParameterSet(fname)
