@@ -249,6 +249,20 @@ def nestedListToArray(nl, dtype, default=1):
 
 
 def wildcard_substituted(type, params):
+    """Substitutes wildcard atoms with the atoms in an atom tuple if possible
+
+    Parameters
+    ----------
+    type : tuple
+        atom type tuple
+    params: collections.OrderedDict
+        dictionary of atom types
+
+    Returns
+    -------
+    prm : tuple
+        Substituted or empty tuple
+    """
     params = [atom_type for atom_type in params if 'X' in atom_type]
     for atom_types in params:
         match = True
