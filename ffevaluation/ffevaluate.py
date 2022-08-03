@@ -248,6 +248,34 @@ def nestedListToArray(nl, dtype, default=1):
     return arr
 
 
+def wildcard_substituted(type, params):
+    """Substitutes wildcard atoms with the atoms in an atom tuple if possible
+
+    Parameters
+    ----------
+    type : tuple
+        atom type tuple
+    params: collections.OrderedDict
+        dictionary of atom types
+
+    Returns
+    -------
+    prm : tuple
+        Substituted or empty tuple
+    """
+    params = [atom_type for atom_type in params if 'X' in atom_type]
+    for atom_types in params:
+        match = True
+        for i, atom_type in enumerate(atom_types):
+            if atom_type != 'X':
+                if atom_type != type[i]:
+                    match = False
+                    break
+        if match:
+            return atom_types
+    return ()
+
+
 def detectImproperCenter(indexes, graph):
     for i in indexes:
         if len(np.intersect1d(list(graph.neighbors(i)), indexes)) == 3:
@@ -276,6 +304,14 @@ def getImproperParameter(type, parameters):
                 parameters.improper_periodic_types[tuple(type[p])],
                 "improper_periodic_types",
             )
+        else:
+            improper_params = wildcard_substituted(tuple(type[p]), parameters.improper_types)
+            if improper_params:
+                return parameters.improper_types[improper_params], "improper_types"
+            improper_periodic_params = wildcard_substituted(tuple(type[p]), parameters.improper_periodic_types)
+            if improper_periodic_params:
+                return parameters.improper_periodic_types[improper_periodic_params], "improper_periodic_types"
+
     raise RuntimeError("Could not find improper parameters for key {}".format(type))
 
 
@@ -365,7 +401,9 @@ def init(mol, prm):
         elif ty[::-1] in prm.dihedral_types:
             dihparam = prm.dihedral_types[ty[::-1]]
         else:
-            raise RuntimeError("Could not find type {} in dihedral_types".format(ty))
+            dihparam = prm.dihedral_types[wildcard_substituted(ty, prm.dihedral_types)]
+            if not dihparam:
+                raise RuntimeError("Could not find type {} in dihedral_types".format(ty))
         i, j = sorted([dihed[0], dihed[3]])
         s14_atom_list[i].append(j)
         s14_value_list[i].append(dihparam[0].scnb)
