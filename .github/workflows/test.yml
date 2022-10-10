@@ -10,63 +10,63 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     defaults: # Needed for conda
       run:
         shell: bash -l {0}
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        lfs: true
+      - uses: actions/checkout@v2
+        with:
+          lfs: true
 
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        activate-environment: ffevaluate
-        channels: acellera,conda-forge,defaults
-        channel-priority: true
-        environment-file: conda-environment.yml
-        python-version: ${{ matrix.python-version }}
-        # auto-update-conda: true
-        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
-        auto-activate-base: false
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: ffevaluate
+          channels: acellera,conda-forge,defaults
+          channel-priority: true
+          environment-file: conda-environment.yml
+          python-version: ${{ matrix.python-version }}
+          # auto-update-conda: true
+          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+          auto-activate-base: false
 
-    - name: Install pip dependencies
-      run: |
-        pip install flake8 pytest
+      - name: Install pip dependencies
+        run: |
+          pip install flake8 pytest
 
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Insert placeholder values
-      run: |
-        python ci/insert_placeholder_values.py
+      - name: Insert placeholder values
+        run: |
+          python ci/insert_placeholder_values.py
 
-    - name: Define conda-build env vars
-      if: startsWith(github.ref, 'refs/tags')
-      run: |
-        echo "BUILD_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-        echo "BUILD_NUMBER=0" >> $GITHUB_ENV
+      - name: Define conda-build env vars
+        if: startsWith(github.ref, 'refs/tags')
+        run: |
+          echo "BUILD_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=0" >> $GITHUB_ENV
 
-    - name: Build and install conda package
-      run: |
-        conda install conda-build=3
-        conda build --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
-        conda install /usr/share/miniconda/envs/ffevaluate/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
+      - name: Build and install conda package
+        run: |
+          conda install conda-build=3
+          conda build --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
+          conda install /usr/share/miniconda/envs/ffevaluate/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
 
-    - name: Run tests and coverage
-      run: |
-        pip install -q codecov coverage
-        coverage run -m unittest discover --start-directory ./ffevaluation --pattern "*.py"
-        codecov
+      - name: Run tests and coverage
+        run: |
+          pip install -q codecov coverage
+          coverage run -m unittest discover --start-directory ./ffevaluation --pattern "*.py"
+          codecov
 
-    - name: Upload to anaconda
-      if: startsWith(github.ref, 'refs/tags')
-      run: |
-        conda install anaconda-client
-        anaconda -t ${{ secrets.ANACONDA_TOKEN }} upload /usr/share/miniconda/envs/ffevaluate/conda-bld/linux-64/ffevaluation-[0-9]*.tar.bz2 -u acellera
+      - name: Upload to anaconda
+        if: startsWith(github.ref, 'refs/tags')
+        run: |
+          conda install anaconda-client
+          anaconda -t ${{ secrets.ANACONDA_TOKEN }} upload /usr/share/miniconda/envs/ffevaluate/conda-bld/linux-64/ffevaluation-[0-9]*.tar.bz2 -u acellera
