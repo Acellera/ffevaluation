@@ -1,7 +1,7 @@
 parmed
 moleculekit
 numpy>=1.17
-numba
+numba=0.56.4
 scipy
 networkx
 openmm
