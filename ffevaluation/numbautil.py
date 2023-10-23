@@ -35,7 +35,7 @@ def dihedralAngleFull(pos, box=None):
     """
     if pos.shape[0] != 4 or pos.shape[1] != 3:
         raise RuntimeError(
-            f"dihedralAngles requires a 4x3 sized coordinate matrix as input. Recieved shape: {pos.shape}"
+            "dihedralAngles requires a 4x3 sized coordinate matrix as input"
         )
     if box is None:
         box = np.zeros(3, dtype=pos.dtype)
