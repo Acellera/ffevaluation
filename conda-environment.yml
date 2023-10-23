@@ -4,7 +4,6 @@ dependencies:
   - moleculekit
   - numpy>=1.17
   - numba
-  - scipy
   - networkx
   - openmm
   - natsort

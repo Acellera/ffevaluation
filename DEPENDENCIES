@@ -1,8 +1,5 @@
 parmed
 moleculekit
 numpy>=1.17
-numba=0.56.4
-scipy
+numba>=0.56.4
 networkx
-openmm
-natsort

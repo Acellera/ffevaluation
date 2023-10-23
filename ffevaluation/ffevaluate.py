@@ -7,7 +7,6 @@ import logging
 from math import sqrt, acos, radians, cos, sin, pi
 import numpy as np
 from numba import jit
-from scipy import constants as const
 from ffevaluation.numbautil import (
     dihedralAngleFull,
     wrapBondedDistance,
@@ -17,6 +16,15 @@ from ffevaluation.numbautil import (
 )
 
 logger = logging.getLogger(__name__)
+
+const = {  # Taken from scipy.constants
+    "epsilon_0": 8.8541878128e-12,
+    "elementary_charge": 1.602176634e-19,
+    "angstrom": 1e-10,
+    "Avogadro": 6.02214076e23,
+    "kilo": 1000,
+    "calorie": 4.184,
+}
 
 
 def loadParameters(fname):
@@ -263,11 +271,11 @@ def wildcard_substituted(type, params):
     prm : tuple
         Substituted or empty tuple
     """
-    params = [atom_type for atom_type in params if 'X' in atom_type]
+    params = [atom_type for atom_type in params if "X" in atom_type]
     for atom_types in params:
         match = True
         for i, atom_type in enumerate(atom_types):
-            if atom_type != 'X':
+            if atom_type != "X":
                 if atom_type != type[i]:
                     match = False
                     break
@@ -305,12 +313,19 @@ def getImproperParameter(type, parameters):
                 "improper_periodic_types",
             )
         else:
-            improper_params = wildcard_substituted(tuple(type[p]), parameters.improper_types)
+            improper_params = wildcard_substituted(
+                tuple(type[p]), parameters.improper_types
+            )
             if improper_params:
                 return parameters.improper_types[improper_params], "improper_types"
-            improper_periodic_params = wildcard_substituted(tuple(type[p]), parameters.improper_periodic_types)
+            improper_periodic_params = wildcard_substituted(
+                tuple(type[p]), parameters.improper_periodic_types
+            )
             if improper_periodic_params:
-                return parameters.improper_periodic_types[improper_periodic_params], "improper_periodic_types"
+                return (
+                    parameters.improper_periodic_types[improper_periodic_params],
+                    "improper_periodic_types",
+                )
 
     raise RuntimeError("Could not find improper parameters for key {}".format(type))
 
@@ -351,8 +366,8 @@ def init(mol, prm):
     nbfix = np.ones((len(prm.nbfix_types), 6), dtype=np.float64) * -1
     for i, nbf in enumerate(prm.nbfix_types):
         if nbf[0] in uqtypes and nbf[1] in uqtypes:
-            idx1 = np.where(uqtypes == nbf[0])[0]
-            idx2 = np.where(uqtypes == nbf[1])[0]
+            idx1 = np.where(uqtypes == nbf[0])[0][0]
+            idx2 = np.where(uqtypes == nbf[1])[0][0]
             rmin, eps, rmin14, eps14 = prm.atom_types[nbf[0]].nbfix[nbf[1]]
             sig = rmin * 2 ** (-1 / 6)  # Convert rmin to sigma
             sig14 = rmin14 * 2 ** (-1 / 6)
@@ -403,7 +418,9 @@ def init(mol, prm):
         else:
             dihparam = prm.dihedral_types[wildcard_substituted(ty, prm.dihedral_types)]
             if not dihparam:
-                raise RuntimeError("Could not find type {} in dihedral_types".format(ty))
+                raise RuntimeError(
+                    "Could not find type {} in dihedral_types".format(ty)
+                )
         i, j = sorted([dihed[0], dihed[3]])
         s14_atom_list[i].append(j)
         s14_value_list[i].append(dihparam[0].scnb)
@@ -458,13 +475,13 @@ def init(mol, prm):
         dihedral_params, dtype=np.float32, default=np.nan
     )
 
-    ELEC_FACTOR = 1 / (4 * const.pi * const.epsilon_0)  # Coulomb's constant
+    ELEC_FACTOR = 1 / (4 * pi * const["epsilon_0"])  # Coulomb's constant
     ELEC_FACTOR *= (
-        const.elementary_charge ** 2
+        const["elementary_charge"] ** 2
     )  # Convert elementary charges to Coulombs
-    ELEC_FACTOR /= const.angstrom  # Convert Angstroms to meters
-    ELEC_FACTOR *= const.Avogadro / (
-        const.kilo * const.calorie
+    ELEC_FACTOR /= const["angstrom"]  # Convert Angstroms to meters
+    ELEC_FACTOR *= const["Avogadro"] / (
+        const["kilo"] * const["calorie"]
     )  # Convert J to kcal/mol
 
     return (
@@ -598,6 +615,7 @@ def _ffevaluate(
 
     # Evaluate pair forces
     for f in range(nframes):
+        coor = coords[:, :, f]
         for i in range(natoms):
             for j in range(i + 1, natoms):
                 isbonded = _ispaired(bonda, i, j)
@@ -612,9 +630,7 @@ def _ffevaluate(
 
                 dist = 0
                 for k in range(3):
-                    direction_vec[k] = wrapDistance(
-                        coords[i, k, f] - coords[j, k, f], box[k, f]
-                    )
+                    direction_vec[k] = wrapDistance(coor[i, k] - coor[j, k], box[k, f])
                     dist += direction_vec[k] * direction_vec[k]
                 dist = sqrt(dist)
                 direction_unitvec = direction_vec / dist
@@ -678,7 +694,7 @@ def _ffevaluate(
         # Evaluate angle forces
         for i in range(nangles):
             pot_an, force_an = _evaluate_angles(
-                coords[angles[i, :], :, f], angle_params[i, :], box[:, f]
+                coor[angles[i, :]], angle_params[i, :], box[:, f]
             )
             energies[3, f] += pot_an
             for a in range(3):
@@ -689,7 +705,7 @@ def _ffevaluate(
         # Evaluate dihedral forces
         for i in range(ndihedrals):
             pot_di, force_di = _evaluate_torsion(
-                coords[dihedrals[i, :], :, f], dihedral_params[i, :], box[:, f]
+                coor[dihedrals[i, :]], dihedral_params[i, :], box[:, f]
             )
             energies[4, f] += pot_di
             for d in range(4):
@@ -700,7 +716,7 @@ def _ffevaluate(
         # Evaluate impropers
         for i in range(nimpropers):
             pot_im, force_im = _evaluate_torsion(
-                coords[impropers[i, :], :, f], improper_params[i, :], box[:, f]
+                coor[impropers[i, :]], improper_params[i, :], box[:, f]
             )
             energies[5, f] += pot_im
             for d in range(4):
@@ -820,7 +836,7 @@ def _evaluate_harmonic_bonds(i, j, bonda, bondv, dist):
     k0 = bondv[i, col * 2 + 0]
     d0 = bondv[i, col * 2 + 1]
     x = dist - d0
-    pot = k0 * (x ** 2)
+    pot = k0 * (x**2)
     force = 2 * k0 * x
     return pot, force
 
@@ -846,10 +862,10 @@ def _evaluate_elec(
         # Ilario G. Tironi, René Sperb, Paul E. Smith, and Wilfred F. van Gunsteren. A generalized reaction field method
         # for molecular dynamics simulations. Journal of Chemical Physics, 102(13):5451–5459, 1995.
         denom = (2 * solventDielectric) + 1
-        krf = (1 / cutoff ** 3) * (solventDielectric - 1) / denom
+        krf = (1 / cutoff**3) * (solventDielectric - 1) / denom
         crf = (1 / cutoff) * (3 * solventDielectric) / denom
         common = ELEC_FACTOR * charge[i] * charge[j] / scale
-        dist2 = dist ** 2
+        dist2 = dist**2
         pot = common * ((1 / dist) + krf * dist2 - crf)
         force = common * (2 * krf * dist - 1 / dist2)
     else:
@@ -947,7 +963,7 @@ def _evaluate_torsion(pos, torsionparam, box):  # Dihedrals and impropers
                 diff += 2 * pi
             elif diff > pi:
                 diff -= 2 * pi
-            pot += k0 * diff ** 2
+            pot += k0 * diff**2
             coef += 2 * k0 * diff
 
     # Taken from OpenMM
