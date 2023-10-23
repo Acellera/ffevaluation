@@ -54,7 +54,7 @@ jobs:
 
       - name: Build and install conda package
         run: |
-          mamba install conda-build=3
+          mamba install conda-build=3 boa -c conda-forge
           conda mambabuild --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
           mamba install /usr/share/miniconda/envs/ffevaluate/conda-bld/*-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
 
