@@ -165,6 +165,7 @@ class FFEvaluate:
         args.append(rfa)
         args.append(solventDielectric)
         self._args = args
+        self._numAtoms = mol.numAtoms
 
     def calculateEnergies(self, coords, box=None, formatted=True):
         """Utility method which calls `calculate` to calculate energies and returns them.
@@ -184,6 +185,15 @@ class FFEvaluate:
         energies : dict or np.ndarray
             The energies as a dictionary or np.array depending on option `formatted`
         """
+        if coords.ndim not in (2, 3) or coords.shape[1] != 3:
+            raise RuntimeError(
+                "FFEvaluate requires a 3D coordinate array of shape [n_atoms, 3, n_frames]"
+            )
+        if coords.ndim == 2:
+            coords = coords[:, :, np.newaxis].copy()
+        if coords.shape[0] != self._numAtoms:
+            raise RuntimeError("Number of atoms in coordinates does not match Molecule")
+
         energies, _, _ = self.calculate(coords, box)
         if formatted:
             energies = self.formatEnergies(energies)
