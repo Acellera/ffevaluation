@@ -415,8 +415,8 @@ def init(mol, prm):
     dihedral_params = [[] for _ in range(mol.dihedrals.shape[0])]
     alreadyadded = {}
     for idx, dihed in enumerate(mol.dihedrals):
-        # Avoid readding duplicate dihedrals
-        stringrep = " ".join(map(str, sorted(dihed)))
+        # Avoid reading duplicate inverted dihedrals
+        stringrep = " ".join(map(str, sorted([list(dihed), list(dihed[::-1])])[0]))
         if stringrep in alreadyadded:
             continue
         alreadyadded[stringrep] = True
