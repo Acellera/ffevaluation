@@ -1,0 +1,114 @@
+data_MOL
+#
+#
+_chem_comp.id                  MOL
+_chem_comp.type                NON-POLYMER
+_chem_comp.pdbx_formal_charge  0
+##
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.alt_atom_id
+_chem_comp_atom.type_symbol
+_chem_comp_atom.charge
+_chem_comp_atom.partial_charge
+_chem_comp_atom.model_Cartn_x
+_chem_comp_atom.model_Cartn_y
+_chem_comp_atom.model_Cartn_z
+_chem_comp_atom.pdbx_model_Cartn_x_ideal
+_chem_comp_atom.pdbx_model_Cartn_y_ideal
+_chem_comp_atom.pdbx_model_Cartn_z_ideal
+MOL  C1   ca  C  0   0.1646  -0.051   1.442  -0.638  -0.051   1.442  -0.638  
+MOL  N1   nh  N  0   -0.637  -0.043   0.067  -0.860  -0.043   0.067  -0.860  
+MOL  C2   ca  C  0   0.0709   1.152   2.152  -0.651   1.152   2.152  -0.651  
+MOL  C3   ca  C  0    -0.22  -1.252   2.095  -0.412  -1.252   2.095  -0.412  
+MOL  C4   c3  C  0   0.1498  -0.599  -0.656   0.293  -0.599  -0.656   0.293  
+MOL  C5   c3  C  0   0.1498  -0.771  -0.272  -2.091  -0.771  -0.272  -2.091  
+MOL  F1   f   F  0  -0.1319   2.314   1.503  -0.879   2.314   1.503  -0.879  
+MOL  C6   ca  C  0   -0.072   1.158   3.501  -0.435   1.158   3.501  -0.435  
+MOL  C7   ca  C  0   0.1846  -1.262   3.467  -0.190  -1.262   3.467  -0.190  
+MOL  C8   c3  C  0   0.1493  -0.500  -2.162   0.043  -0.500  -2.162   0.043  
+MOL  C9   c3  C  0   0.1493  -0.672  -1.779  -2.341  -0.672  -1.779  -2.341  
+MOL  C10  ca  C  0  -0.1936  -0.044   4.172  -0.200  -0.044   4.172  -0.200  
+MOL  N2   na  N  0  -0.4838  -2.449   4.131   0.036  -2.449   4.131   0.036  
+MOL  N3   n7  N  0  -0.7952  -1.228  -2.501  -1.188  -1.228  -2.501  -1.188  
+MOL  C11  c   C  0   0.6039  -0.070   5.625   0.037  -0.070   5.625   0.037  
+MOL  C12  cx  C  0   0.1325  -3.695   3.360   0.038  -3.695   3.360   0.038  
+MOL  C13  cc  C  0     0.19  -2.511   5.451   0.254  -2.511   5.451   0.254  
+MOL  C14  cd  C  0  -0.3364  -1.383   6.246   0.276  -1.383   6.246   0.276  
+MOL  O1   o   O  0  -0.5291   0.954   6.287   0.035   0.954   6.287   0.035  
+MOL  C15  cx  C  0  -0.1244  -4.591   3.470   1.273  -4.591   3.470   1.273  
+MOL  C16  cx  C  0  -0.1244  -5.008   4.140  -0.038  -5.008   4.140  -0.038  
+MOL  C17  c   C  0   0.6703  -1.493   7.691   0.521  -1.493   7.691   0.521  
+MOL  O2   o   O  0   -0.597  -2.583   8.193   0.717  -2.583   8.193   0.717  
+MOL  O3   oh  O  0  -0.5601  -0.386   8.459   0.528  -0.386   8.459   0.528  
+MOL  H1   ha  H  0    0.147  -2.178   1.539  -0.408  -2.178   1.539  -0.408  
+MOL  H2   h1  H  0   0.0442  -0.036  -0.398   1.190  -0.036  -0.398   1.190  
+MOL  H3   h1  H  0   0.0442  -1.645  -0.377   0.427  -1.645  -0.377   0.427  
+MOL  H4   h1  H  0   0.0442  -1.818   0.011  -1.984  -1.818   0.011  -1.984  
+MOL  H5   h1  H  0   0.0442  -0.333   0.265  -2.932  -0.333   0.265  -2.932  
+MOL  H6   ha  H  0    0.181   2.090   4.047  -0.445   2.090   4.047  -0.445  
+MOL  H7   h1  H  0  0.06495   0.547  -2.445  -0.064   0.547  -2.445  -0.064  
+MOL  H8   h1  H  0  0.06495  -0.938  -2.700   0.884  -0.938  -2.700   0.884  
+MOL  H9   h1  H  0  0.06495  -1.235  -2.037  -3.237  -1.235  -2.037  -3.237  
+MOL  H10  h1  H  0  0.06495   0.374  -2.057  -2.474   0.374  -2.057  -2.474  
+MOL  H11  hn  H  0   0.3498  -2.214  -2.317  -1.087  -2.214  -2.317  -1.087  
+MOL  H12  h1  H  0   0.0997  -3.652   2.395  -0.468  -3.652   2.395  -0.468  
+MOL  H13  h4  H  0    0.184  -3.475   5.907   0.424  -3.475   5.907   0.424  
+MOL  H14  hc  H  0   0.0882  -5.138   2.578   1.579  -5.138   2.578   1.579  
+MOL  H15  hc  H  0   0.0882  -4.254   4.116   2.084  -4.254   4.116   2.084  
+MOL  H16  hc  H  0   0.0882  -4.946   5.227  -0.089  -4.946   5.227  -0.089  
+MOL  H17  hc  H  0   0.0882  -5.830   3.689  -0.594  -5.830   3.689  -0.594  
+MOL  H18  ho  H  0     0.44  -0.508   9.404   0.693  -0.508   9.404   0.693  
+##
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.value_order
+MOL  C1   N1   SING  
+MOL  C1   C2   DOUB  
+MOL  C1   C3   SING  
+MOL  N1   C4   SING  
+MOL  N1   C5   SING  
+MOL  C2   F1   SING  
+MOL  C2   C6   SING  
+MOL  C3   C7   DOUB  
+MOL  C3   H1   SING  
+MOL  C4   C8   SING  
+MOL  C4   H2   SING  
+MOL  C4   H3   SING  
+MOL  C5   C9   SING  
+MOL  C5   H4   SING  
+MOL  C5   H5   SING  
+MOL  C6   C10  DOUB  
+MOL  C6   H6   SING  
+MOL  C7   C10  SING  
+MOL  C7   N2   SING  
+MOL  C8   N3   SING  
+MOL  C8   H7   SING  
+MOL  C8   H8   SING  
+MOL  C9   N3   SING  
+MOL  C9   H9   SING  
+MOL  C9   H10  SING  
+MOL  C10  C11  SING  
+MOL  N2   C12  SING  
+MOL  N2   C13  SING  
+MOL  N3   H11  SING  
+MOL  C11  C14  SING  
+MOL  C11  O1   DOUB  
+MOL  C12  C15  SING  
+MOL  C12  C16  SING  
+MOL  C12  H12  SING  
+MOL  C13  C14  DOUB  
+MOL  C13  H13  SING  
+MOL  C14  C17  SING  
+MOL  C15  C16  SING  
+MOL  C15  H14  SING  
+MOL  C15  H15  SING  
+MOL  C16  H16  SING  
+MOL  C16  H17  SING  
+MOL  C17  O2   DOUB  
+MOL  C17  O3   SING  
+MOL  O3   H18  SING  
+##
