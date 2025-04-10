@@ -44,7 +44,7 @@ jobs:
       - name: Build and install conda package
         run: |
           conda install rattler-build -c conda-forge
-          rattler-build package/ffevaluation --output-dir /tmp/pkg/ --no-include-recipe -c acellera -c conda-forge
+          rattler-build build --recipe package/ffevaluation/recipe.yaml --output-dir /tmp/pkg/ --no-include-recipe -c acellera -c conda-forge
           conda install /tmp/pkg/noarch/ffevaluation-*.conda -y -q -c acellera -c conda-forge
 
       - name: Run tests and coverage
