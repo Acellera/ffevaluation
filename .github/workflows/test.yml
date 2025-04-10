@@ -27,7 +27,7 @@ jobs:
 
       - name: Install pip dependencies
         run: |
-          pip install flake8 pytest
+          pip install flake8
 
       - name: Lint with flake8
         run: |
@@ -45,14 +45,6 @@ jobs:
         run: |
           conda install rattler-build -c conda-forge
           rattler-build build --recipe package/ffevaluation/recipe.yaml --output-dir /tmp/pkg/ --no-include-recipe -c acellera -c conda-forge
-
-      - name: Install conda package
-        run: conda install /tmp/pkg/noarch/ffevaluation-*.conda -y -c acellera -c conda-forge
-
-      - name: Run tests and coverage
-        run: |
-          conda install openmm
-          pytest ./tests/
 
       - name: Upload to anaconda
         if: startsWith(github.ref, 'refs/tags')

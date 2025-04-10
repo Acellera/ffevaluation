@@ -18,6 +18,17 @@ requirements:
   run:
 
 tests:
+  - script:
+      - pytest ./tests
+    requirements:
+      run:
+        - pytest
+        - openmm
+        - natsort
+    files:
+      source:
+        - tests/
+
   - python:
       imports:
         - ffevaluation
