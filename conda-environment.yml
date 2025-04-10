@@ -1,9 +1,0 @@
-name: ffevaluate
-dependencies:
-  - parmed
-  - moleculekit
-  - numpy>=1.17
-  - numba
-  - networkx
-  - openmm
-  - natsort

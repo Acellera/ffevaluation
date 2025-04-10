@@ -1,0 +1,34 @@
+package:
+  name: ffevaluation
+  version:
+
+source:
+  path: ../..
+
+build:
+  noarch: python
+
+requirements:
+  host:
+    - pip
+    - python
+    - setuptools
+    - python-build
+    - setuptools-scm>=8
+  run:
+
+tests:
+  - python:
+      imports:
+        - ffevaluation
+      pip_check: false
+
+about:
+  homepage: https://www.acellera.com
+  license: LicenseRef-HTMD
+  license_file: LICENSE
+  summary: FFevaluation is a numba implementation of molecular forcefields
+
+extra:
+  recipe-maintainers:
+    - stefdoerr

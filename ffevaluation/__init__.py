@@ -1,13 +1,18 @@
-from ffevaluation.home import home as __home
-from ffevaluation.version import version as _version
 import os
 import logging.config
+from importlib.metadata import version, PackageNotFoundError
 
-__version__ = _version()
+# from importlib.resources import files
 
 try:
+    __version__ = version("ffevaluation")
+except PackageNotFoundError:
+    pass
+
+__curr_dir = os.path.dirname(os.path.abspath(__file__))
+try:
     logging.config.fileConfig(
-        os.path.join(__home(), "logging.ini"), disable_existing_loggers=False
+        os.path.join(__curr_dir, "logging.ini"), disable_existing_loggers=False
     )
-except:
+except Exception:
     print("FFEvaluation: Logging setup failed")

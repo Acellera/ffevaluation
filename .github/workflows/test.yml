@@ -10,7 +10,6 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.8", "3.9", "3.10"]
 
     defaults: # Needed for conda
       run:
@@ -21,14 +20,9 @@ jobs:
         with:
           lfs: true
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-update-conda: true
-          activate-environment: ffevaluate
-          environment-file: conda-environment.yml
           python-version: ${{ matrix.python-version }}
-          uses-mamba: true
-          miniforge-variant: Mambaforge
           channels: acellera,conda-forge,defaults
 
       - name: Install pip dependencies
@@ -44,28 +38,22 @@ jobs:
 
       - name: Insert placeholder values
         run: |
-          python ci/insert_placeholder_values.py
-
-      - name: Define conda-build env vars
-        if: startsWith(github.ref, 'refs/tags')
-        run: |
-          echo "BUILD_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "BUILD_NUMBER=0" >> $GITHUB_ENV
+          pip install toml pyyaml setuptools-scm
+          python package/ffevaluation/insert_placeholder_values.py
 
       - name: Build and install conda package
         run: |
-          mamba install conda-build=3 boa -c conda-forge
-          conda mambabuild --python ${{ matrix.python-version }} package/ffevaluation --no-include-recipe -c acellera -c conda-forge
-          mamba install /usr/share/miniconda3/envs/ffevaluate/conda-bld/linux-64/ffevaluation-[0-9]*.tar.bz2 -y -q -c acellera -c conda-forge
+          mamba install rattler-build -c conda-forge
+          rattler-build package/ffevaluation --output-dir /tmp/pkg/ --no-include-recipe -c acellera -c conda-forge
+          mamba install /tmp/pkg/noarch/ffevaluation-*.conda -y -q -c acellera -c conda-forge
 
       - name: Run tests and coverage
         run: |
-          pip install -q codecov coverage
-          coverage run -m unittest discover --start-directory ./ffevaluation --pattern "*.py"
-          codecov
+          mamba install openmm
+          pytest ./tests/
 
       - name: Upload to anaconda
         if: startsWith(github.ref, 'refs/tags')
         run: |
           mamba install anaconda-client
-          anaconda -t ${{ secrets.ANACONDA_TOKEN }} upload /usr/share/miniconda3/envs/ffevaluate/conda-bld/linux-64/ffevaluation-[0-9]*.tar.bz2 -u acellera
+          anaconda -t ${{ secrets.ANACONDA_TOKEN }} upload /tmp/pkg/noarch/ffevaluation-*.conda -u acellera
