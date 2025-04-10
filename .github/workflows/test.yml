@@ -41,11 +41,13 @@ jobs:
           pip install toml pyyaml setuptools-scm
           python package/ffevaluation/insert_placeholder_values.py
 
-      - name: Build and install conda package
+      - name: Build conda package
         run: |
           conda install rattler-build -c conda-forge
           rattler-build build --recipe package/ffevaluation/recipe.yaml --output-dir /tmp/pkg/ --no-include-recipe -c acellera -c conda-forge
-          conda install /tmp/pkg/noarch/ffevaluation-*.conda -y -q -c acellera -c conda-forge
+
+      - name: Install conda package
+        run: conda install /tmp/pkg/noarch/ffevaluation-*.conda -y -c acellera -c conda-forge
 
       - name: Run tests and coverage
         run: |
