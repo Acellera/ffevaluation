@@ -1,0 +1,3 @@
+prune .github
+prune package
+prune tests
