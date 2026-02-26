@@ -34,6 +34,7 @@ build-backend = "setuptools.build_meta"
 dev = [
     "build>=1.4.0",
     "flake8>=7.3.0",
+    "natsort>=8.4.0",
     "pytest>=9.0.2",
 ]
 
