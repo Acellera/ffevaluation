@@ -314,7 +314,7 @@ def test_ffevaluate(system):
         energies = FFEvaluate.formatEnergies(energies[:, 0])
         forces = forces[:, :, 0].squeeze()
         omm_energies, omm_forces = openmm_energy(
-            prm, struct, coords, box=mol.box, cutoff=cutoff
+            prm, struct, coords, box=mol.box[:, 0], cutoff=cutoff
         )
         ediff = compareEnergies(energies, omm_energies, abstol=abstol)
         print(
@@ -341,7 +341,7 @@ def test_ffevaluate(system):
     energies = FFEvaluate.formatEnergies(energies[:, 0])
     forces = forces[:, :, 0].squeeze()
     omm_energies, omm_forces = openmm_energy(
-        prm, struct, coords, box=mol.box, cutoff=cutoff
+        prm, struct, coords, box=mol.box[:, 0], cutoff=cutoff
     )
     ediff = compareEnergies(energies, omm_energies, abstol=abstol)
     print(
